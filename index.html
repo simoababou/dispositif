@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onde Électromagnétique 3D</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        .container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        .controls-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-width: 300px;
+            z-index: 1000;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 350px;
+            z-index: 1000;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .wave-display {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+        
+        .title {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            text-align: center;
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: bold;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            color: #a0a0a0;
+            font-weight: 500;
+        }
+        
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(58, 123, 213, 0.5);
+        }
+        
+        .value-display {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .field-legend {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.9em;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 4px;
+            margin-right: 8px;
+            border-radius: 2px;
+        }
+        
+        .electric { background: #ff4757; }
+        .magnetic { background: #3742fa; }
+        .propagation { background: #ffa502; }
+        
+        .equation {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            border-left: 3px solid #00d2ff;
+        }
+        
+        .parameter {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 0.9em;
+        }
+        
+        .parameter-value {
+            color: #00d2ff;
+            font-weight: bold;
+        }
+        
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        
+        .wave-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 15px;
+        }
+        
+        @keyframes glow {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+        
+        .glow {
+            animation: glow 2s ease-in-out infinite;
+        }
+        
+        .physics-mode {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .mode-btn {
+            flex: 1;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+            font-size: 0.8em;
+        }
+        
+        .mode-btn.active {
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            border-color: #00d2ff;
+        }
+        
+        .mode-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <canvas id="canvas"></canvas>
+        
+        <div class="controls-panel">
+            <div class="title">Onde Électromagnétique</div>
+            
+            <div class="control-group">
+                <label>Fréquence (Hz)</label>
+                <input type="range" id="frequency" min="0.1" max="5" step="0.1" value="1">
+                <span class="value-display" id="freqValue">1.0 Hz</span>
+            </div>
+            
+            <div class="control-group">
+                <label>Amplitude Électrique (V/m)</label>
+                <input type="range" id="amplitude" min="0.5" max="3" step="0.1" value="1.5">
+                <span class="value-display" id="ampValue">1.5 V/m</span>
+            </div>
+            
+            <div class="control-group">
+                <label>Longueur d'onde (m)</label>
+                <input type="range" id="wavelength" min="0.5" max="4" step="0.1" value="2">
+                <span class="value-display" id="waveValue">2.0 m</span>
+            </div>
+            
+            <div class="control-group">
+                <label>Vitesse d'animation</label>
+                <input type="range" id="speed" min="0.1" max="3" step="0.1" value="1">
+                <span class="value-display" id="speedValue">1.0x</span>
+            </div>
+            
+            <div class="physics-mode">
+                <div class="mode-btn active" onclick="setMode('classical')" id="classicalBtn">Classique</div>
+                <div class="mode-btn" onclick="setMode('quantum')" id="quantumBtn">Quantique</div>
+                <div class="mode-btn" onclick="setMode('relativistic')" id="relativisticBtn">Relativiste</div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="btn" onclick="toggleAnimation()" id="playBtn">⏸️ Pause</button>
+                <button class="btn" onclick="resetWave()">🔄 Reset</button>
+            </div>
+            
+            <div class="field-legend">
+                <div class="legend-item">
+                    <div class="legend-color electric"></div>
+                    <span>E⃗ (Électrique)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color magnetic"></div>
+                    <span>B⃗ (Magnétique)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color propagation"></div>
+                    <span>k⃗ (Propagation)</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h3 style="margin-bottom: 15px; color: #00d2ff;">Propriétés Physiques</h3>
+            
+            <div class="equation">
+                E⃗ = E₀ sin(kz - ωt) ĵ<br>
+                B⃗ = B₀ sin(kz - ωt) k̂
+            </div>
+            
+            <div class="parameter">
+                <span>Vitesse de la lumière:</span>
+                <span class="parameter-value">c = 3×10⁸ m/s</span>
+            </div>
+            
+            <div class="parameter">
+                <span>Nombre d'onde:</span>
+                <span class="parameter-value" id="kValue">k = 3.14 rad/m</span>
+            </div>
+            
+            <div class="parameter">
+                <span>Pulsation:</span>
+                <span class="parameter-value" id="omegaValue">ω = 6.28 rad/s</span>
+            </div>
+            
+            <div class="parameter">
+                <span>Période:</span>
+                <span class="parameter-value" id="periodValue">T = 1.0 s</span>
+            </div>
+            
+            <div class="parameter">
+                <span>Énergie du photon:</span>
+                <span class="parameter-value" id="energyValue">E = 6.6×10⁻³⁴ J</span>
+            </div>
+            
+            <div class="parameter">
+                <span>Intensité:</span>
+                <span class="parameter-value" id="intensityValue">I = 3.0×10⁻⁶ W/m²</span>
+            </div>
+            
+            <div class="equation" style="margin-top: 15px;">
+                Relations fondamentales:<br>
+                c = λf = ω/k<br>
+                E = B×c<br>
+                I = ½ε₀cE₀²
+            </div>
+        </div>
+        
+        <div class="wave-display">
+            <canvas class="wave-canvas" id="waveCanvas" width="800" height="150"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Constantes physiques
+        const c = 3e8; // vitesse de la lumière (m/s)
+        const epsilon0 = 8.854e-12; // permittivité du vide
+        const h = 6.626e-34; // constante de Planck
+        
+        // Variables globales
+        let canvas, ctx;
+        let waveCanvas, waveCtx;
+        let animationId;
+        let time = 0;
+        let isPlaying = true;
+        let currentMode = 'classical';
+        
+        // Paramètres de l'onde
+        let frequency = 1;
+        let amplitude = 1.5;
+        let wavelength = 2;
+        let speed = 1;
+        
+        // Initialisation
+        function init() {
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+            waveCanvas = document.getElementById('waveCanvas');
+            waveCtx = waveCanvas.getContext('2d');
+            
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Event listeners pour les contrôles
+            document.getElementById('frequency').addEventListener('input', updateParameters);
+            document.getElementById('amplitude').addEventListener('input', updateParameters);
+            document.getElementById('wavelength').addEventListener('input', updateParameters);
+            document.getElementById('speed').addEventListener('input', updateParameters);
+            
+            updateParameters();
+            animate();
+        }
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            waveCanvas.width = waveCanvas.offsetWidth;
+            waveCanvas.height = waveCanvas.offsetHeight;
+        }
+        
+        function updateParameters() {
+            frequency = parseFloat(document.getElementById('frequency').value);
+            amplitude = parseFloat(document.getElementById('amplitude').value);
+            wavelength = parseFloat(document.getElementById('wavelength').value);
+            speed = parseFloat(document.getElementById('speed').value);
+            
+            // Mise à jour des affichages
+            document.getElementById('freqValue').textContent = frequency.toFixed(1) + ' Hz';
+            document.getElementById('ampValue').textContent = amplitude.toFixed(1) + ' V/m';
+            document.getElementById('waveValue').textContent = wavelength.toFixed(1) + ' m';
+            document.getElementById('speedValue').textContent = speed.toFixed(1) + 'x';
+            
+            // Calculs physiques
+            const omega = 2 * Math.PI * frequency;
+            const k = 2 * Math.PI / wavelength;
+            const period = 1 / frequency;
+            const photonEnergy = h * frequency;
+            const intensity = 0.5 * epsilon0 * c * amplitude * amplitude;
+            
+            document.getElementById('kValue').textContent = `k = ${k.toFixed(2)} rad/m`;
+            document.getElementById('omegaValue').textContent = `ω = ${omega.toFixed(2)} rad/s`;
+            document.getElementById('periodValue').textContent = `T = ${period.toFixed(2)} s`;
+            document.getElementById('energyValue').textContent = `E = ${photonEnergy.toExponential(1)} J`;
+            document.getElementById('intensityValue').textContent = `I = ${intensity.toExponential(1)} W/m²`;
+        }
+        
+        function animate() {
+            if (isPlaying) {
+                time += 0.02 * speed;
+            }
+            
+            drawElectromagneticWave();
+            drawWaveProfile();
+            
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        function drawElectromagneticWave() {
+            ctx.fillStyle = 'rgba(12, 12, 12, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const waveLength = 400;
+            
+            // Dessiner l'axe de propagation (z)
+            ctx.strokeStyle = '#ffa502';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(centerX - waveLength/2, centerY);
+            ctx.lineTo(centerX + waveLength/2, centerY);
+            ctx.stroke();
+            
+            // Flèche de propagation
+            ctx.beginPath();
+            ctx.moveTo(centerX + waveLength/2 - 15, centerY - 8);
+            ctx.lineTo(centerX + waveLength/2, centerY);
+            ctx.lineTo(centerX + waveLength/2 - 15, centerY + 8);
+            ctx.stroke();
+            
+            // Nombre de points le long de l'onde
+            const numPoints = 100;
+            const omega = 2 * Math.PI * frequency;
+            const k = 2 * Math.PI / wavelength;
+            
+            for (let i = 0; i < numPoints; i++) {
+                const z = (i / numPoints - 0.5) * waveLength;
+                const x = centerX + z;
+                
+                // Calcul des champs
+                const phase = k * z - omega * time;
+                const E = amplitude * Math.sin(phase);
+                const B = (amplitude / c) * Math.sin(phase);
+                
+                // Champ électrique E (direction y)
+                const eY = centerY - E * 60;
+                ctx.strokeStyle = '#ff4757';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, centerY);
+                ctx.lineTo(x, eY);
+                ctx.stroke();
+                
+                // Flèche du champ électrique
+                if (Math.abs(E) > 0.1) {
+                    const direction = E > 0 ? -1 : 1;
+                    ctx.beginPath();
+                    ctx.moveTo(x - 4, eY + direction * 8);
+                    ctx.lineTo(x, eY);
+                    ctx.lineTo(x + 4, eY + direction * 8);
+                    ctx.stroke();
+                }
+                
+                // Champ magnétique B (direction x dans le plan de l'écran)
+                const bX = x + B * 60;
+                ctx.strokeStyle = '#3742fa';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, centerY);
+                ctx.lineTo(bX, centerY);
+                ctx.stroke();
+                
+                // Flèche du champ magnétique
+                if (Math.abs(B) > 0.001) {
+                    const direction = B > 0 ? 1 : -1;
+                    ctx.beginPath();
+                    ctx.moveTo(bX - direction * 8, centerY - 4);
+                    ctx.lineTo(bX, centerY);
+                    ctx.lineTo(bX - direction * 8, centerY + 4);
+                    ctx.stroke();
+                }
+            }
+            
+            // Labels et informations
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '16px Arial';
+            ctx.fillText('E⃗ (Champ électrique)', centerX - waveLength/2, centerY - 100);
+            ctx.fillText('B⃗ (Champ magnétique)', centerX - waveLength/2, centerY + 120);
+            ctx.fillText('k⃗ (Direction de propagation)', centerX + waveLength/2 - 200, centerY + 30);
+            
+            // Mode quantique - affichage des photons
+            if (currentMode === 'quantum') {
+                drawPhotons(centerX, centerY, waveLength);
+            }
+            
+            // Mode relativiste - effets de contraction
+            if (currentMode === 'relativistic') {
+                drawRelativisticEffects(centerX, centerY);
+            }
+        }
+        
+        function drawWaveProfile() {
+            waveCtx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            waveCtx.fillRect(0, 0, waveCanvas.width, waveCanvas.height);
+            
+            const centerY = waveCanvas.height / 2;
+            const omega = 2 * Math.PI * frequency;
+            const k = 2 * Math.PI / wavelength;
+            
+            // Champ électrique
+            waveCtx.strokeStyle = '#ff4757';
+            waveCtx.lineWidth = 2;
+            waveCtx.beginPath();
+            for (let x = 0; x < waveCanvas.width; x++) {
+                const z = (x / waveCanvas.width - 0.5) * 10;
+                const phase = k * z - omega * time;
+                const E = amplitude * Math.sin(phase);
+                const y = centerY - E * 30;
+                
+                if (x === 0) waveCtx.moveTo(x, y);
+                else waveCtx.lineTo(x, y);
+            }
+            waveCtx.stroke();
+            
+            // Champ magnétique
+            waveCtx.strokeStyle = '#3742fa';
+            waveCtx.lineWidth = 2;
+            waveCtx.beginPath();
+            for (let x = 0; x < waveCanvas.width; x++) {
+                const z = (x / waveCanvas.width - 0.5) * 10;
+                const phase = k * z - omega * time;
+                const B = (amplitude / c) * Math.sin(phase) * c * 30; // Facteur d'échelle
+                const y = centerY + B;
+                
+                if (x === 0) waveCtx.moveTo(x, y);
+                else waveCtx.lineTo(x, y);
+            }
+            waveCtx.stroke();
+            
+            // Ligne centrale
+            waveCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            waveCtx.lineWidth = 1;
+            waveCtx.beginPath();
+            waveCtx.moveTo(0, centerY);
+            waveCtx.lineTo(waveCanvas.width, centerY);
+            waveCtx.stroke();
+        }
+        
+        function drawPhotons(centerX, centerY, waveLength) {
+            const numPhotons = 8;
+            const omega = 2 * Math.PI * frequency;
+            
+            for (let i = 0; i < numPhotons; i++) {
+                const x = centerX - waveLength/2 + (waveLength * i / numPhotons) + (time * 50) % waveLength;
+                if (x > centerX - waveLength/2 && x < centerX + waveLength/2) {
+                    // Dessiner le photon
+                    ctx.fillStyle = '#ffff00';
+                    ctx.beginPath();
+                    ctx.arc(x, centerY, 4, 0, 2 * Math.PI);
+                    ctx.fill();
+                    
+                    // Aura du photon
+                    const gradient = ctx.createRadialGradient(x, centerY, 0, x, centerY, 12);
+                    gradient.addColorStop(0, 'rgba(255, 255, 0, 0.6)');
+                    gradient.addColorStop(1, 'rgba(255, 255, 0, 0)');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(x, centerY, 12, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            }
+        }
+        
+        function drawRelativisticEffects(centerX, centerY) {
+            // Contraction de Lorentz visualization
+            ctx.strokeStyle = 'rgba(255, 165, 0, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            
+            for (let i = 0; i < 5; i++) {
+                const x = centerX - 150 + i * 75;
+                ctx.beginPath();
+                ctx.ellipse(x, centerY, 20, 40, 0, 0, 2 * Math.PI);
+                ctx.stroke();
+            }
+            
+            ctx.setLineDash([]);
+        }
+        
+        function setMode(mode) {
+            currentMode = mode;
+            
+            // Mise à jour des boutons
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(mode + 'Btn').classList.add('active');
+        }
+        
+        function toggleAnimation() {
+            isPlaying = !isPlaying;
+            const btn = document.getElementById('playBtn');
+            btn.textContent = isPlaying ? '⏸️ Pause' : '▶️ Play';
+        }
+        
+        function resetWave() {
+            time = 0;
+        }
+        
+        // Initialisation au chargement de la page
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
